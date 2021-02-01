@@ -4,16 +4,17 @@ use std::time::Duration;
 
 pub fn run() {
     let context = zmq::Context::new();
-    let socket = context.socket(zmq::REP).unwrap();
+    let socket = context.socket(zmq::PULL).unwrap();
     assert!(socket.bind("tcp://*:5555").is_ok());
 
     let zmq_wrapper = ZMQWrapper{
         socket
     };
+    println!("Server started...");
+
 
     // event loop
     loop {
-        println!("Server started...");
         let data = zmq_wrapper.recv_string();
 
         println!("Received {}", data);

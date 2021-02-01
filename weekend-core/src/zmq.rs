@@ -1,4 +1,5 @@
-use zmq::{Socket, PollEvents, Error, Result};
+use zmq::{Socket, PollEvents, Result};
+use std::error::Error;
 
 pub struct ZMQWrapper {
     pub(crate) socket: Socket
@@ -14,12 +15,21 @@ impl ZMQWrapper {
     }
 
     pub fn send_string(&self, a: &str) {
-        self.socket.send(a, 0).unwrap();
+        let result = self.socket.send(a, 0);
+        match result {
+            Ok(_) => {}
+            Err(e) => {println!("{}", e.to_string())}
+        }
     }
 
     pub fn recv_string(&self) -> String {
         let mut msg = zmq::Message::new();
-        self.socket.recv(&mut msg, 0).unwrap();
+        let result = self.socket.recv(&mut msg, 0);
+        match result {
+            Ok(_) => {}
+            Err(e) => {println!("{}", e.to_string())}
+        }
+
         return String::from(msg.as_str().unwrap());
     }
 

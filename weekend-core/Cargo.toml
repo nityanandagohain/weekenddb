@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 rand = "0.5.5"
 zmq = "0.9"
+protobuf = "2.20.0"
 
 [build-dependencies]
 protoc-rust = "2.20.0"
