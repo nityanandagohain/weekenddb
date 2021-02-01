@@ -1,8 +1,8 @@
 use crate::lattices::base_lattices::{MapLattice, Lattice};
 use std::hash::Hash;
 
-struct KvStore<K, V, T> where V: Lattice<T> {
-    db: MapLattice<K, V, T>
+pub struct KvStore<K, V, T> where V: Lattice<T> {
+    pub db: MapLattice<K, V, T>
 }
 
 impl<K: Eq + Hash + Clone, V, T> KvStore<K, V, T> where V: Lattice<T> + Clone {

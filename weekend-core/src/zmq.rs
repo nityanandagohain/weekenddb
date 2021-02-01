@@ -22,15 +22,14 @@ impl ZMQWrapper {
         }
     }
 
-    pub fn recv_string(&self) -> String {
-        let mut msg = zmq::Message::new();
-        let result = self.socket.recv(&mut msg, 0);
+    pub fn recv_bytes(&self) -> Vec<u8> {
+        let result = self.socket.recv_bytes(0);
         match result {
             Ok(_) => {}
             Err(e) => {println!("{}", e.to_string())}
         }
 
-        return String::from(msg.as_str().unwrap());
+        return result.unwrap();
     }
 
     pub fn pool(&self, events: PollEvents, timeout_ms: i64) -> Result<i32> {

@@ -1,5 +1,6 @@
 use crate::lattices::base_lattices::Lattice;
 
+#[derive(Clone)]
 pub struct TimestampValuePair<T> {
     timestamp: u64,
     value: T
@@ -25,11 +26,12 @@ impl<T> TimestampValuePair<T> {
     // TODO - Figure out why size is required
 }
 
+#[derive(Clone)]
 pub struct LWWLattice<T> {
     element: TimestampValuePair<T>
 }
 
-impl<T: Copy> Lattice<TimestampValuePair<T>> for LWWLattice<T> {
+impl<T: Clone> Lattice<TimestampValuePair<T>> for LWWLattice<T> {
     fn reveal(&self) -> &TimestampValuePair<T> {
         return &self.element;
     }
@@ -37,7 +39,7 @@ impl<T: Copy> Lattice<TimestampValuePair<T>> for LWWLattice<T> {
     fn merge_elem(&mut self, t: &TimestampValuePair<T>) {
         if t.timestamp >= self.element.timestamp {
             self.element.timestamp = t.timestamp;
-            self.element.value = t.value;
+            self.element.value = t.value.clone();
         }
     }
 }
