@@ -1,0 +1,14 @@
+[package]
+name = "weekend-core"
+version = "0.1.0"
+authors = ["Gaurav Sehgal <dggs222@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rand = "0.5.5"
+zmq = "0.9"
+
+[build-dependencies]
+protoc-rust = "2.20.0"

@@ -1,0 +1,6 @@
+[workspace]
+
+members = [
+    "weekend-core",
+    "weekend-client"
+]

@@ -1,0 +1,12 @@
+syntax = "proto3";
+
+// LATTICE SERIALIZATION
+
+// Serialization of last-write wins lattices.
+message LWWValue {
+  // The last-writer wins timestamp associated with this data.
+  uint64 timestamp = 1;
+
+  // The actual data stored by this LWWValue.
+  bytes value = 2;
+}
