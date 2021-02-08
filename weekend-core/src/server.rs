@@ -4,7 +4,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use weekend_core::protos::request::{KeyRequest, LatticeType, RequestType};
 use protobuf::Message;
 use crate::kv_store::KvStore;
-use crate::lattices::base_lattices::MapLattice;
+use crate::lattices::base_lattices::{MapLattice, Lattice};
 use std::collections::HashMap;
 use crate::lattices::lww_lattice::{LWWLattice, TimestampValuePair};
 
@@ -12,6 +12,9 @@ pub fn run() {
     let context = zmq::Context::new();
     let socket = context.socket(zmq::PULL).unwrap();
     assert!(socket.bind("tcp://*:5555").is_ok());
+
+    let res_socket = context.socket(zmq::PUSH).unwrap();
+    assert!(res_socket.connect("tcp://localhost:5055").is_ok());
 
     let zmq_wrapper = ZMQWrapper{
         socket
@@ -48,7 +51,11 @@ pub fn run() {
                 }
             }
         } else {
+            for tuple in result.tuples {
+                let k = String::from(tuple.get_key());
+                let val = kv_store.get(&k).unwrap().reveal();
 
+            }
         }
 
         thread::sleep(Duration::from_millis(100));

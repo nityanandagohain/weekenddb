@@ -6,6 +6,11 @@ fn main() {
     let requester = context.socket(zmq::PUSH).unwrap();
 
     assert!(requester.connect("tcp://localhost:5555").is_ok());
+
+    let response = context.socket(zmq::PULL).unwrap();
+    assert!(response.bind("tcp://localhost:5055").is_ok());
+
+
     let key = String::from("key");
     let val = String::from("value");
 
