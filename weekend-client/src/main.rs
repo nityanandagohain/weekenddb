@@ -2,7 +2,6 @@ use protobuf::Message;
 use weekend_core::protos::request::{KeyTuple, KeyRequest, LatticeType, RequestType};
 
 fn main() {
-    println!("Hello, world!");
     let context = zmq::Context::new();
     let requester = context.socket(zmq::PUSH).unwrap();
 

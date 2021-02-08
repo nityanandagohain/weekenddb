@@ -2,8 +2,8 @@ use crate::lattices::base_lattices::Lattice;
 
 #[derive(Clone)]
 pub struct TimestampValuePair<T> {
-    timestamp: u64,
-    value: T
+    pub(crate) timestamp: u128,
+    pub(crate) value: T
 }
 
 impl<T> TimestampValuePair<T> {
@@ -16,7 +16,7 @@ impl<T> TimestampValuePair<T> {
     }
 
     #[inline]
-    fn new_with_timestamp(val: T, ts: u64) -> TimestampValuePair<T> {
+    fn new_with_timestamp(val: T, ts: u128) -> TimestampValuePair<T> {
         return TimestampValuePair{
             timestamp: ts,
             value: val
@@ -28,7 +28,7 @@ impl<T> TimestampValuePair<T> {
 
 #[derive(Clone)]
 pub struct LWWLattice<T> {
-    element: TimestampValuePair<T>
+    pub(crate) element: TimestampValuePair<T>
 }
 
 impl<T: Clone> Lattice<TimestampValuePair<T>> for LWWLattice<T> {

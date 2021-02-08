@@ -1,12 +1,12 @@
 use crate::zmq::ZMQWrapper;
 use std::thread;
-use std::time::Duration;
-use weekend_core::protos::request::KeyRequest;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use weekend_core::protos::request::{KeyRequest, LatticeType, RequestType};
 use protobuf::Message;
 use crate::kv_store::KvStore;
 use crate::lattices::base_lattices::MapLattice;
 use std::collections::HashMap;
-use crate::lattices::lww_lattice::LWWLattice;
+use crate::lattices::lww_lattice::{LWWLattice, TimestampValuePair};
 
 pub fn run() {
     let context = zmq::Context::new();
@@ -18,9 +18,9 @@ pub fn run() {
     };
     println!("Server started...");
 
-    let map: HashMap<String, LWWLattice<String>> = HashMap::new();
+    let map: HashMap<String, LWWLattice<Vec<u8>>> = HashMap::new();
 
-    let kv_store = KvStore{
+    let mut kv_store = KvStore{
         db: MapLattice {
             element: map,
             __phantom: Default::default()
@@ -34,8 +34,23 @@ pub fn run() {
 
         println!("Received {}", result.request_id);
 
-        thread::sleep(Duration::from_millis(1000));
+        if result.field_type == RequestType::PUT {
+            for tuple in result.tuples {
+                if tuple.lattice_type == LatticeType::LWW {
+                    let l = LWWLattice {
+                        element: TimestampValuePair {
+                            timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis(),
+                            value: tuple.payload
+                        }
+                    };
 
-        println!("No data...");
+                    kv_store.put(&tuple.key, &l);
+                }
+            }
+        } else {
+
+        }
+
+        thread::sleep(Duration::from_millis(100));
     }
 }
