@@ -8,8 +8,7 @@ fn main() {
     assert!(requester.connect("tcp://localhost:5555").is_ok());
 
     let response = context.socket(zmq::PULL).unwrap();
-    assert!(response.bind("tcp://localhost:5055").is_ok());
-
+    assert!(response.bind("tcp://*:5055").is_ok());
 
     let key = String::from("key");
     let val = String::from("value");
@@ -23,9 +22,16 @@ fn main() {
     request_body.request_id = String::from("unique");
     request_body.field_type = RequestType::PUT;
     request_body.tuples.push(tuple);
+    request_body.response_address = String::from("tcp://localhost:5055");
 
     for request_nbr in 0..10 {
-        println!("Sending Hello {}...", request_nbr);
+        println!("sending request");
         requester.send(request_body.write_to_bytes().unwrap(), 0);
+        let result = response.recv_bytes(0);
+        match result {
+            Ok(_) => {}
+            Err(e) => { println!("{}", e.to_string()) }
+        }
+        println!("Got Response: {}", String::from_utf8(result.unwrap()).unwrap());
     }
 }

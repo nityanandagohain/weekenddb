@@ -1,5 +1,8 @@
-use zmq::{Socket, PollEvents, Result};
+use zmq::{Socket, PollEvents, Result, Context};
 use std::error::Error;
+use std::collections::HashMap;
+use std::collections::hash_map::Entry;
+use std::borrow::Borrow;
 
 pub struct ZMQWrapper {
     pub(crate) socket: Socket
@@ -18,7 +21,7 @@ impl ZMQWrapper {
         let result = self.socket.send(a, 0);
         match result {
             Ok(_) => {}
-            Err(e) => {println!("{}", e.to_string())}
+            Err(e) => { println!("{}", e.to_string()) }
         }
     }
 
@@ -26,13 +29,41 @@ impl ZMQWrapper {
         let result = self.socket.recv_bytes(0);
         match result {
             Ok(_) => {}
-            Err(e) => {println!("{}", e.to_string())}
+            Err(e) => { println!("{}", e.to_string()) }
         }
-
         return result.unwrap();
     }
 
     pub fn pool(&self, events: PollEvents, timeout_ms: i64) -> Result<i32> {
         return self.socket.poll(events, timeout_ms);
+    }
+}
+
+pub struct ZMQSocketCache {
+    pub cache: HashMap<String, ZMQWrapper>
+}
+
+impl ZMQSocketCache {
+    pub fn new() -> ZMQSocketCache {
+        return ZMQSocketCache{
+            cache: HashMap::new()
+        }
+    }
+
+    pub fn get_or_connect(&mut self, endpoint: String) -> &ZMQWrapper {
+        let socket = self.cache.entry(endpoint.clone());
+        return match socket {
+            Entry::Occupied(o) => {
+                o.into_mut()
+            }
+            Entry::Vacant(v) => {
+                let context = zmq::Context::new();
+                let res_socket = context.socket(zmq::PUSH).unwrap();
+                assert!(res_socket.connect(endpoint.as_str()).is_ok());
+                v.insert(ZMQWrapper{
+                    socket: res_socket
+                })
+            }
+        }
     }
 }

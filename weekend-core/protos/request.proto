@@ -1,46 +1,25 @@
 syntax = "proto3";
 
-// An enum to differentiate between different KVS requests.
 enum RequestType {
-  // A default type to capture unspecified requests.
   RT_UNSPECIFIED = 0;
-
-  // A request to retrieve data from the KVS.
   GET = 1;
-
-  // A request to put data into the KVS.
   PUT = 2;
 }
 
 enum LatticeType {
-  // No lattice type specified
   NONE = 0;
-
-  // Last-writer wins lattice
   LWW = 1;
 }
 
-// A protobuf to represent an individual key, both for requests and responses.
 message KeyTuple {
-  // The key name for this request/response.
   string key = 1;
-
-  // The lattice type for this key. Only required for server responses and PUT
-  // requests.
   LatticeType lattice_type = 2;
-
-  // The data associated with this key.
   bytes payload = 4;
 }
 
-// An individual GET or PUT request; each request can batch multiple keys.
 message KeyRequest {
-  // The type of this request (see RequestType).
   RequestType type = 1;
-
-  // A list of KeyTuples batched in this request.
   repeated KeyTuple tuples = 2;
-
-  // A client-specific ID used to match asynchronous requests with responses.
-  string request_id = 4;
+  string request_id = 3;
+  string response_address = 4;
 }

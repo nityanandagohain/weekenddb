@@ -261,6 +261,7 @@ pub struct KeyRequest {
     pub field_type: RequestType,
     pub tuples: ::protobuf::RepeatedField<KeyTuple>,
     pub request_id: ::std::string::String,
+    pub response_address: ::std::string::String,
     // special fields
     pub unknown_fields: ::protobuf::UnknownFields,
     pub cached_size: ::protobuf::CachedSize,
@@ -317,7 +318,7 @@ impl KeyRequest {
         ::std::mem::replace(&mut self.tuples, ::protobuf::RepeatedField::new())
     }
 
-    // string request_id = 4;
+    // string request_id = 3;
 
 
     pub fn get_request_id(&self) -> &str {
@@ -342,6 +343,32 @@ impl KeyRequest {
     pub fn take_request_id(&mut self) -> ::std::string::String {
         ::std::mem::replace(&mut self.request_id, ::std::string::String::new())
     }
+
+    // string response_address = 4;
+
+
+    pub fn get_response_address(&self) -> &str {
+        &self.response_address
+    }
+    pub fn clear_response_address(&mut self) {
+        self.response_address.clear();
+    }
+
+    // Param is passed by value, moved
+    pub fn set_response_address(&mut self, v: ::std::string::String) {
+        self.response_address = v;
+    }
+
+    // Mutable pointer to the field.
+    // If field is not initialized, it is initialized with default value first.
+    pub fn mut_response_address(&mut self) -> &mut ::std::string::String {
+        &mut self.response_address
+    }
+
+    // Take field
+    pub fn take_response_address(&mut self) -> ::std::string::String {
+        ::std::mem::replace(&mut self.response_address, ::std::string::String::new())
+    }
 }
 
 impl ::protobuf::Message for KeyRequest {
@@ -364,8 +391,11 @@ impl ::protobuf::Message for KeyRequest {
                 2 => {
                     ::protobuf::rt::read_repeated_message_into(wire_type, is, &mut self.tuples)?;
                 },
-                4 => {
+                3 => {
                     ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.request_id)?;
+                },
+                4 => {
+                    ::protobuf::rt::read_singular_proto3_string_into(wire_type, is, &mut self.response_address)?;
                 },
                 _ => {
                     ::protobuf::rt::read_unknown_or_skip_group(field_number, wire_type, is, self.mut_unknown_fields())?;
@@ -387,7 +417,10 @@ impl ::protobuf::Message for KeyRequest {
             my_size += 1 + ::protobuf::rt::compute_raw_varint32_size(len) + len;
         };
         if !self.request_id.is_empty() {
-            my_size += ::protobuf::rt::string_size(4, &self.request_id);
+            my_size += ::protobuf::rt::string_size(3, &self.request_id);
+        }
+        if !self.response_address.is_empty() {
+            my_size += ::protobuf::rt::string_size(4, &self.response_address);
         }
         my_size += ::protobuf::rt::unknown_fields_size(self.get_unknown_fields());
         self.cached_size.set(my_size);
@@ -404,7 +437,10 @@ impl ::protobuf::Message for KeyRequest {
             v.write_to_with_cached_sizes(os)?;
         };
         if !self.request_id.is_empty() {
-            os.write_string(4, &self.request_id)?;
+            os.write_string(3, &self.request_id)?;
+        }
+        if !self.response_address.is_empty() {
+            os.write_string(4, &self.response_address)?;
         }
         os.write_unknown_fields(self.get_unknown_fields())?;
         ::std::result::Result::Ok(())
@@ -459,6 +495,11 @@ impl ::protobuf::Message for KeyRequest {
                 |m: &KeyRequest| { &m.request_id },
                 |m: &mut KeyRequest| { &mut m.request_id },
             ));
+            fields.push(::protobuf::reflect::accessor::make_simple_field_accessor::<_, ::protobuf::types::ProtobufTypeString>(
+                "response_address",
+                |m: &KeyRequest| { &m.response_address },
+                |m: &mut KeyRequest| { &mut m.response_address },
+            ));
             ::protobuf::reflect::MessageDescriptor::new_pb_name::<KeyRequest>(
                 "KeyRequest",
                 fields,
@@ -478,6 +519,7 @@ impl ::protobuf::Clear for KeyRequest {
         self.field_type = RequestType::RT_UNSPECIFIED;
         self.tuples.clear();
         self.request_id.clear();
+        self.response_address.clear();
         self.unknown_fields.clear();
     }
 }
@@ -600,10 +642,11 @@ impl ::protobuf::reflect::ProtobufValue for LatticeType {
 static file_descriptor_proto_data: &'static [u8] = b"\
     \n\rrequest.proto\"g\n\x08KeyTuple\x12\x10\n\x03key\x18\x01\x20\x01(\tR\
     \x03key\x12/\n\x0clattice_type\x18\x02\x20\x01(\x0e2\x0c.LatticeTypeR\
-    \x0blatticeType\x12\x18\n\x07payload\x18\x04\x20\x01(\x0cR\x07payload\"p\
-    \n\nKeyRequest\x12\x20\n\x04type\x18\x01\x20\x01(\x0e2\x0c.RequestTypeR\
-    \x04type\x12!\n\x06tuples\x18\x02\x20\x03(\x0b2\t.KeyTupleR\x06tuples\
-    \x12\x1d\n\nrequest_id\x18\x04\x20\x01(\tR\trequestId*3\n\x0bRequestType\
+    \x0blatticeType\x12\x18\n\x07payload\x18\x04\x20\x01(\x0cR\x07payload\"\
+    \x9b\x01\n\nKeyRequest\x12\x20\n\x04type\x18\x01\x20\x01(\x0e2\x0c.Reque\
+    stTypeR\x04type\x12!\n\x06tuples\x18\x02\x20\x03(\x0b2\t.KeyTupleR\x06tu\
+    ples\x12\x1d\n\nrequest_id\x18\x03\x20\x01(\tR\trequestId\x12)\n\x10resp\
+    onse_address\x18\x04\x20\x01(\tR\x0fresponseAddress*3\n\x0bRequestType\
     \x12\x12\n\x0eRT_UNSPECIFIED\x10\0\x12\x07\n\x03GET\x10\x01\x12\x07\n\
     \x03PUT\x10\x02*\x20\n\x0bLatticeType\x12\x08\n\x04NONE\x10\0\x12\x07\n\
     \x03LWW\x10\x01b\x06proto3\

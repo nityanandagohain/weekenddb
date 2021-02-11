@@ -1,4 +1,4 @@
-use crate::zmq::ZMQWrapper;
+use crate::zmq::{ZMQWrapper, ZMQSocketCache};
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use weekend_core::protos::request::{KeyRequest, LatticeType, RequestType};
@@ -13,8 +13,7 @@ pub fn run() {
     let socket = context.socket(zmq::PULL).unwrap();
     assert!(socket.bind("tcp://*:5555").is_ok());
 
-    let res_socket = context.socket(zmq::PUSH).unwrap();
-    assert!(res_socket.connect("tcp://localhost:5055").is_ok());
+    let mut socket_cache = ZMQSocketCache::new();
 
     let zmq_wrapper = ZMQWrapper{
         socket
@@ -37,6 +36,8 @@ pub fn run() {
 
         println!("Received {}", result.request_id);
 
+        let responder_socket = socket_cache.get_or_connect(result.response_address);
+
         if result.field_type == RequestType::PUT {
             for tuple in result.tuples {
                 if tuple.lattice_type == LatticeType::LWW {
@@ -48,13 +49,13 @@ pub fn run() {
                     };
 
                     kv_store.put(&tuple.key, &l);
+                    responder_socket.send_string(tuple.key.as_str());
                 }
             }
         } else {
             for tuple in result.tuples {
                 let k = String::from(tuple.get_key());
                 let val = kv_store.get(&k).unwrap().reveal();
-
             }
         }
 
