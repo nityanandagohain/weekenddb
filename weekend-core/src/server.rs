@@ -8,6 +8,25 @@ use crate::lattices::base_lattices::{MapLattice, Lattice};
 use std::collections::HashMap;
 use crate::lattices::lww_lattice::{LWWLattice, TimestampValuePair};
 
+
+pub struct ServerThread {
+    public_ip: String,
+    private_ip: String,
+    thread_id: usize,
+    virtual_num: usize,
+}
+
+impl ServerThread {
+    pub fn virtual_id(&self) -> String {
+        return format!("{}:{}/{}", self.private_ip, self.thread_id, self.virtual_num);
+    }
+
+    pub fn get_id(&self) -> String {
+        return format!("{}:{}", self.private_ip, self.thread_id);
+    }
+}
+
+
 pub fn run() {
     let context = zmq::Context::new();
     let socket = context.socket(zmq::PULL).unwrap();
@@ -15,17 +34,18 @@ pub fn run() {
 
     let mut socket_cache = ZMQSocketCache::new();
 
-    let zmq_wrapper = ZMQWrapper{
+    let zmq_wrapper = ZMQWrapper {
         socket
     };
+
     println!("Server started...");
 
     let map: HashMap<String, LWWLattice<Vec<u8>>> = HashMap::new();
 
-    let mut kv_store = KvStore{
+    let mut kv_store = KvStore {
         db: MapLattice {
             element: map,
-            __phantom: Default::default()
+            __phantom: Default::default(),
         }
     };
 
@@ -44,7 +64,7 @@ pub fn run() {
                     let l = LWWLattice {
                         element: TimestampValuePair {
                             timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis(),
-                            value: tuple.payload
+                            value: tuple.payload,
                         }
                     };
 

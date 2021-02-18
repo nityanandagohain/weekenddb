@@ -5,6 +5,8 @@ pub mod lattices;
 mod server;
 mod zmq;
 mod kv_store;
+mod hash_ring;
+
 
 use crate::lattices::base_lattices as lattice;
 
