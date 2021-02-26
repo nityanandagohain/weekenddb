@@ -6,6 +6,8 @@ mod server;
 mod zmq;
 mod kv_store;
 mod hash_ring;
+mod node_handler;
+
 
 
 use crate::lattices::base_lattices as lattice;

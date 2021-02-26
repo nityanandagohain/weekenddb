@@ -1,4 +1,4 @@
-use zmq::{Socket, PollEvents, Result, Context};
+use zmq::{Socket, PollEvents, Result, Context, SocketType};
 use std::error::Error;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -15,6 +15,14 @@ impl ZMQWrapper {
 
     pub fn connect(&self, address: &str) -> Result<()> {
         return self.socket.connect(address);
+    }
+
+    pub fn send_bytes(&self, a: Vec<u8>) {
+        let result = self.socket.send(a, 0);
+        match result {
+            Ok(_) => {}
+            Err(e) => { println!("{}", e.to_string()) }
+        }
     }
 
     pub fn send_string(&self, a: &str) {
@@ -50,7 +58,7 @@ impl ZMQSocketCache {
         }
     }
 
-    pub fn get_or_connect(&mut self, endpoint: String) -> &ZMQWrapper {
+    pub fn get_or_connect(&mut self, endpoint: String, socket_type: SocketType) -> &ZMQWrapper {
         let socket = self.cache.entry(endpoint.clone());
         return match socket {
             Entry::Occupied(o) => {
@@ -58,7 +66,7 @@ impl ZMQSocketCache {
             }
             Entry::Vacant(v) => {
                 let context = zmq::Context::new();
-                let res_socket = context.socket(zmq::PUSH).unwrap();
+                let res_socket = context.socket(socket_type).unwrap();
                 assert!(res_socket.connect(endpoint.as_str()).is_ok());
                 v.insert(ZMQWrapper{
                     socket: res_socket

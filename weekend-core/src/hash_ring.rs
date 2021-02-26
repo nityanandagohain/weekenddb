@@ -1,49 +1,79 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use crate::server::ServerThread;
-use std::collections::hash_map::DefaultHasher;
+use std::collections::hash_map::{DefaultHasher, Entry};
 use std::hash::{Hash, Hasher};
 use std::borrow::Borrow;
-use crate::hash_ring::HashRingKind::GLOBAL;
 
 // Impl of consistent hashing
 
 pub enum HashRingKind {
     GlobalRing,
-    LocalRing
+    LocalRing,
 }
 
 pub struct HashRing {
     ring: Vec<(u64, ServerThread)>,
-    kind: HashRingKind
+    kind: HashRingKind,
+    pub unique_servers: HashMap<String, usize>,
 }
 
 
 impl HashRing {
     #[inline]
-    fn new_global() -> HashRing {
-        return HashRing{
+    pub fn new_global() -> HashRing {
+        return HashRing {
             ring: vec![],
-            kind: HashRingKind::GlobalRing
-        }
+            kind: HashRingKind::GlobalRing,
+            unique_servers: HashMap::new()
+        };
     }
 
     #[inline]
-    fn new_local() -> HashRing {
-        return HashRing{
+    pub fn new_local() -> HashRing {
+        return HashRing {
             ring: vec![],
-            kind: HashRingKind::LocalRing
-        }
+            kind: HashRingKind::LocalRing,
+            unique_servers: HashMap::new()
+        };
     }
 }
 
 impl HashRing {
-    pub fn insert(&mut self, thread: ServerThread) {
+    pub fn insert(&mut self, thread: ServerThread, join_count: usize) -> bool {
+        let entry = self.unique_servers.entry(thread.get_id());
+
+        return match entry {
+            Entry::Occupied(mut o) => {
+                // If join count is greater then that means this node is trying to rejoin.
+                if *o.get() < join_count {
+                    o.insert(join_count);
+                    true
+                }
+
+                false
+            }
+            Entry::Vacant(v) => {
+                v.insert(join_count);
+                self.insert_(thread);
+
+                // Todo - add more virtual threads to the ring for better keys distribution
+                true
+            }
+        }
+    }
+
+    pub fn remove(&mut self, thread: ServerThread) {
+        self.remove_(thread);
+        self.unique_servers.remove(&thread.get_id());
+    }
+
+    fn insert_(&mut self, thread: ServerThread) {
         let key = get_key(&self.get_input_key(&thread));
         self.ring.push((key, thread));
         self.ring.sort_by(|(k1, _), (k2, _)| k1.cmp(k2));
     }
 
-    pub fn remove(&mut self, thread: ServerThread) -> Option<ServerThread> {
+    fn remove_(&mut self, thread: ServerThread) -> Option<ServerThread> {
         let key = get_key(&self.get_input_key(&thread));
 
         match self.ring.binary_search_by(|(k, _)| k.cmp(&key)) {
@@ -72,6 +102,10 @@ impl HashRing {
             HashRingKind::GlobalRing => thread.get_id(),
             HashRingKind::LocalRing => thread.virtual_id()
         }
+    }
+
+    pub fn get_servers(&self) -> impl Iterator<Item=&ServerThread> + '_ {
+        return self.ring.iter().map(| (_, val) | val)
     }
 }
 
