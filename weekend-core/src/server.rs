@@ -8,6 +8,8 @@ use crate::lattices::base_lattices::{MapLattice, Lattice};
 use std::collections::HashMap;
 use crate::lattices::lww_lattice::{LWWLattice, TimestampValuePair};
 use crate::hash_ring::HashRing;
+use zmq::{PollEvents, PollItem};
+use std::ops::BitAnd;
 
 
 pub struct ServerThread {
@@ -27,12 +29,13 @@ impl ServerThread {
     }
 
     pub fn get_node_join_addr(&self) -> String {
-        return format!("")
+        return format!("tcp://*:5055")
     }
 }
 
 impl ServerThread {
     pub fn run(&self, seed_ip: String) {
+        let zmq_context = zmq::Context::new();
         let mut global_hash_ring: HashRing = HashRing::new_global();
         let mut local_hash_ring: HashRing = HashRing::new_local();
         let data_map: HashMap<String, LWWLattice<Vec<u8>>> = HashMap::new();
@@ -42,12 +45,18 @@ impl ServerThread {
                 __phantom: Default::default(),
             }
         };
+        let seed_socket = zmq_context.socket(zmq::REP).unwrap();
+        // let zmq_seed_wrapper = ZMQWrapper{socket: seed_socket};
+        seed_socket.bind("tcp://1.1.1.1:5056");
+        let result = seed_socket.recv_bytes(0);
+
+
         let mut socket_cache = ZMQSocketCache::new();
 
         // Request seed node for all the ip address
-        let seed_socket = socket_cache.get_or_connect(get_seed_connect_addr(seed_ip), zmq::REQ);
-        seed_socket.send_string("Join");
-        let data = seed_socket.recv_bytes();
+        let seed_socke = socket_cache.get_or_connect(get_seed_connect_addr(seed_ip), zmq::REQ);
+        seed_socke.send_string("test");
+        let data = seed_socke.recv_bytes();
         let seed_response = SeedResponse::parse_from_bytes(&data).unwrap();
 
         for s in seed_response.servers {
@@ -82,39 +91,44 @@ impl ServerThread {
             self.notify_other_servers(&global_hash_ring, &mut socket_cache);
         }
 
-        // set pool events
+        // Defining sockets to pull data from
+
+
+
+        let join_pull_socket = zmq_context.socket(zmq::PULL).unwrap();
+        join_pull_socket.bind("tcp://*:5057");
+
+        let request_pull_socket = zmq_context.socket(zmq::PULL).unwrap();
+        request_pull_socket.bind("tcp://*:5058");
+
+        // Added the above sockets to poll items which then will be used in the event loop
+        let mut poll_items: Vec<PollItem> = vec![];
+        poll_items.push(seed_socket.as_poll_item(PollEvents::POLLIN));
+        poll_items.push(join_pull_socket.as_poll_item(PollEvents::POLLIN));
+        poll_items.push(request_pull_socket.as_poll_item(PollEvents::POLLIN));
+
 
         // event loop
         loop {
+            let poll_result = zmq::poll(&mut poll_items, 0);
 
-            let data = zmq_wrapper.recv_bytes();
-            let result = KeyRequest::parse_from_bytes(&data).unwrap();
-
-            println!("Received {}", result.request_id);
-            let responder_socket = socket_cache.get_or_connect(result.response_address);
-
-            if result.field_type == RequestType::PUT {
-                for tuple in result.tuples {
-                    if tuple.lattice_type == LatticeType::LWW {
-                        let l = LWWLattice {
-                            element: TimestampValuePair {
-                                timestamp: SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis(),
-                                value: tuple.payload,
-                            }
-                        };
-
-                        kv_store.put(&tuple.key, &l);
-                        responder_socket.send_string(tuple.key.as_str());
-                    }
-                }
-            } else {
-                for tuple in result.tuples {
-                    let k = String::from(tuple.get_key());
-                    let val = kv_store.get(&k).unwrap().reveal();
-                }
+            if poll_items[0].get_revents() == PollEvents::POLLIN {
+                // handle seed request
+                println!("seed request");
+                // let vec = zmq_seed_wrapper.recv_bytes();
+                // let response = self.seed_handler(&global_hash_ring);
+                // zmq_seed_wrapper.send_bytes(response.write_to_bytes().unwrap());
             }
 
-            thread::sleep(Duration::from_millis(100));
+            if poll_items[1].get_revents() == PollEvents::POLLIN {
+                // handle node join request
+                println!("join request")
+            }
+
+            if poll_items[2].get_revents() == PollEvents::POLLIN {
+                // handle user request
+                println!("get/put request")
+            }
         }
     }
 }
@@ -122,7 +136,6 @@ impl ServerThread {
 // Seed handler
 
 impl ServerThread {
-
     pub fn notify_other_servers(&self, global_hash_ring: &HashRing, socket_cache: &mut ZMQSocketCache) {
         let mut server = Server::new();
         server.set_public_ip(self.public_ip.clone());
@@ -135,7 +148,7 @@ impl ServerThread {
     }
 
 
-    pub fn seed_handler(global_hash_ring: &HashRing) -> SeedResponse {
+    pub fn seed_handler(&self, global_hash_ring: &HashRing) -> SeedResponse {
         let mut response = SeedResponse::new();
 
         for s in global_hash_ring.get_servers() {
@@ -150,5 +163,5 @@ impl ServerThread {
 }
 
 fn get_seed_connect_addr(seed_ip: String) -> String {
-    return String::from("tcp://{}:{}", seed_ip, 8081);
+    return String::from(format!("tcp://{}:{}", seed_ip, 8081));
 }

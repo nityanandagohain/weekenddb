@@ -6,46 +6,17 @@ mod server;
 mod zmq;
 mod kv_store;
 mod hash_ring;
-mod node_handler;
-
 
 
 use crate::lattices::base_lattices as lattice;
 
 fn main() {
-    server::run()
+    let thread = server::ServerThread {
+        public_ip: "1.1.1.1".to_string(),
+        private_ip: "1.1.1.1".to_string(),
+        thread_id: 0,
+        virtual_num: 0
+    };
+
+    thread.run("1.1.1.1".to_string())
 }
-
-
-// fn main() {
-//     println!("Hello World!");
-//
-//     let mut mx_lat = lattice::MaxLattice{
-//         element: 4
-//     };
-//
-//     let mut test_map = HashMap::new();
-//     test_map.insert(
-//         "k", mx_lat
-//     );
-//
-//     let mut map_lattice = lattice::MapLattice{
-//         element: test_map,
-//         __phantom: Default::default()
-//     };
-//
-//     let new_elem = lattice::MaxLattice{
-//         element: 5
-//     };
-//
-//     let mut test_map_2 = HashMap::new();
-//     test_map_2.insert(
-//         "k", new_elem
-//     );
-//
-//     map_lattice.merge_elem(&test_map_2);
-//
-//     for (book, review) in map_lattice.reveal() {
-//         println!("{}: \"{}\"", book, review.reveal());
-//     }
-// }

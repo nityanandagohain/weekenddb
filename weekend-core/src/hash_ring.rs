@@ -48,9 +48,9 @@ impl HashRing {
                 if *o.get() < join_count {
                     o.insert(join_count);
                     true
+                } else {
+                    false
                 }
-
-                false
             }
             Entry::Vacant(v) => {
                 v.insert(join_count);
@@ -64,7 +64,7 @@ impl HashRing {
 
     pub fn remove(&mut self, thread: ServerThread) {
         self.remove_(thread);
-        self.unique_servers.remove(&thread.get_id());
+        // self.unique_servers.remove(&thread.get_id());
     }
 
     fn insert_(&mut self, thread: ServerThread) {
