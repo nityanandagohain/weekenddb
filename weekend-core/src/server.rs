@@ -29,12 +29,28 @@ impl ServerThread {
     }
 
     pub fn get_node_join_addr(&self) -> String {
-        return format!("tcp://*:5055")
+        return format!("tcp://{}:5055", self.private_ip);
+    }
+
+    pub fn get_node_connect_addr(&self, private_ip: String) -> String {
+        return format!("tcp://{}:5055", private_ip);
+    }
+
+    pub fn get_seed_connect_addr(&self, private_ip: String) -> String {
+        return format!("tcp://{}:5057", private_ip);
+    }
+
+    pub fn get_seed_addr(&self) -> String {
+        return format!("tcp://{}:5057", self.private_ip);
+    }
+
+    pub fn get_req_addr(&self) -> String {
+        return format!("tcp://{}:5059", self.private_ip);
     }
 }
 
 impl ServerThread {
-    pub fn run(&self, seed_ip: String) {
+    pub fn run(&self, seed_ip: String, is_seed_node: bool) {
         let zmq_context = zmq::Context::new();
         let mut global_hash_ring: HashRing = HashRing::new_global();
         let mut local_hash_ring: HashRing = HashRing::new_local();
@@ -45,44 +61,44 @@ impl ServerThread {
                 __phantom: Default::default(),
             }
         };
-        let seed_socket = zmq_context.socket(zmq::REP).unwrap();
-        // let zmq_seed_wrapper = ZMQWrapper{socket: seed_socket};
-        seed_socket.bind("tcp://1.1.1.1:5056");
-        let result = seed_socket.recv_bytes(0);
-
 
         let mut socket_cache = ZMQSocketCache::new();
 
         // Request seed node for all the ip address
-        let seed_socke = socket_cache.get_or_connect(get_seed_connect_addr(seed_ip), zmq::REQ);
-        seed_socke.send_string("test");
-        let data = seed_socke.recv_bytes();
-        let seed_response = SeedResponse::parse_from_bytes(&data).unwrap();
 
-        for s in seed_response.servers {
-            global_hash_ring.insert(ServerThread{
-                public_ip: s.public_ip,
-                private_ip: s.private_ip,
-                thread_id: 0,
-                virtual_num: 0
-            }, 0);
+        if !is_seed_node {
+            let seed_req_socket = socket_cache.get_or_connect(self.get_seed_connect_addr(seed_ip), zmq::REQ);
+            seed_req_socket.send_string("join me");
+            let data = seed_req_socket.recv_bytes();
+
+            if data.is_some() {
+                let seed_response = SeedResponse::parse_from_bytes(&data.unwrap()).unwrap();
+                for s in seed_response.servers {
+                    global_hash_ring.insert(ServerThread {
+                        public_ip: s.public_ip,
+                        private_ip: s.private_ip,
+                        thread_id: 0,
+                        virtual_num: 0,
+                    }, 0);
+                }
+            }
         }
 
         // Todo - get join count for this new server
-        global_hash_ring.insert(ServerThread{
+        global_hash_ring.insert(ServerThread {
             public_ip: self.public_ip.clone(),
             private_ip: self.private_ip.clone(),
             thread_id: 0,
-            virtual_num: 0
+            virtual_num: 0,
         }, 0);
 
 
         for i in 0..2 {
-            local_hash_ring.insert(ServerThread{
+            local_hash_ring.insert(ServerThread {
                 public_ip: self.public_ip.clone(),
                 private_ip: self.private_ip.clone(),
                 thread_id: i,
-                virtual_num: 0
+                virtual_num: 0,
             }, 0);
         }
 
@@ -92,14 +108,20 @@ impl ServerThread {
         }
 
         // Defining sockets to pull data from
+        let seed_socket = ZMQWrapper {
+            socket: zmq_context.socket(zmq::REP).unwrap()
+        };
+        seed_socket.bind(self.get_seed_addr().as_str());
 
+        let join_pull_socket = ZMQWrapper {
+            socket: zmq_context.socket(zmq::PULL).unwrap()
+        };
+        join_pull_socket.bind(self.get_node_join_addr().as_str());
 
-
-        let join_pull_socket = zmq_context.socket(zmq::PULL).unwrap();
-        join_pull_socket.bind("tcp://*:5057");
-
-        let request_pull_socket = zmq_context.socket(zmq::PULL).unwrap();
-        request_pull_socket.bind("tcp://*:5058");
+        let request_pull_socket = ZMQWrapper {
+            socket: zmq_context.socket(zmq::PULL).unwrap()
+        };
+        request_pull_socket.bind(self.get_req_addr().as_str());
 
         // Added the above sockets to poll items which then will be used in the event loop
         let mut poll_items: Vec<PollItem> = vec![];
@@ -110,19 +132,21 @@ impl ServerThread {
 
         // event loop
         loop {
-            let poll_result = zmq::poll(&mut poll_items, 0);
+            println!("server running...");
+            let poll_result = zmq::poll(&mut poll_items, -1);
 
             if poll_items[0].get_revents() == PollEvents::POLLIN {
                 // handle seed request
-                println!("seed request");
-                // let vec = zmq_seed_wrapper.recv_bytes();
-                // let response = self.seed_handler(&global_hash_ring);
-                // zmq_seed_wrapper.send_bytes(response.write_to_bytes().unwrap());
+                let req = seed_socket.recv_string();
+                let response = self.seed_handler(&global_hash_ring);
+                seed_socket.send_bytes(response.write_to_bytes().unwrap());
             }
 
             if poll_items[1].get_revents() == PollEvents::POLLIN {
                 // handle node join request
                 println!("join request")
+
+
             }
 
             if poll_items[2].get_revents() == PollEvents::POLLIN {
@@ -142,7 +166,10 @@ impl ServerThread {
         server.set_private_ip(self.private_ip.clone());
 
         for s in global_hash_ring.get_servers() {
-            let socket = socket_cache.get_or_connect(self.get_node_join_addr(), zmq::PUSH);
+            if s.private_ip == self.private_ip {
+                continue;
+            }
+            let socket = socket_cache.get_or_connect(self.get_seed_connect_addr(s.private_ip.clone()), zmq::PUSH);
             socket.send_bytes(server.write_to_bytes().unwrap());
         }
     }
@@ -160,8 +187,6 @@ impl ServerThread {
 
         return response;
     }
-}
 
-fn get_seed_connect_addr(seed_ip: String) -> String {
-    return String::from(format!("tcp://{}:{}", seed_ip, 8081));
+    pub fn node_handler(&self, )
 }

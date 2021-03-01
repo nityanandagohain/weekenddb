@@ -1,4 +1,4 @@
-use zmq::{Socket, PollEvents, Result, Context, SocketType};
+use zmq::{Socket, PollEvents, Result, Context, SocketType, PollItem};
 use std::error::Error;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -33,17 +33,28 @@ impl ZMQWrapper {
         }
     }
 
-    pub fn recv_bytes(&self) -> Vec<u8> {
+    pub fn recv_bytes(&self) -> Option<Vec<u8>> {
         let result = self.socket.recv_bytes(0);
         match result {
-            Ok(_) => {}
-            Err(e) => { println!("{}", e.to_string()) }
+            Ok(r) => {Some(r)}
+            Err(e) => {
+                println!("{}", e.to_string());
+                None
+            }
         }
-        return result.unwrap();
+    }
+
+    pub fn recv_string(&self) -> String {
+        let result = self.socket.recv_string(0);
+        return result.unwrap().unwrap();
     }
 
     pub fn pool(&self, events: PollEvents, timeout_ms: i64) -> Result<i32> {
         return self.socket.poll(events, timeout_ms);
+    }
+
+    pub fn as_poll_item(&self, events: PollEvents) -> PollItem {
+        self.socket.as_poll_item(events)
     }
 }
 
