@@ -2,7 +2,7 @@
 
 Trying to create a production ready in-memory store which will work as a faster alternative to Redis or memcache. It follows the shared nothing architecture described in [bloom lang](http://bloom-lang.net/calm/) and [Anna Paper](https://dsf.berkeley.edu/jmh/papers/anna_ieee18.pdf). 
 
-##Todo
+## Todo
 
 - [x] Lattice data structures
 - [x] Consistent Hash Ring
@@ -11,7 +11,7 @@ Trying to create a production ready in-memory store which will work as a faster 
 - [ ] Put/Get Request
 ...
 
-##Research
+## Research
 
 - http://db.cs.berkeley.edu/jmh/papers/anna_ieee18.pdf [must read]
 - http://bloom-lang.net/calm/ [must read]
