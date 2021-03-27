@@ -144,9 +144,9 @@ impl ServerThread {
 
             if poll_items[1].get_revents() == PollEvents::POLLIN {
                 // handle node join request
-                println!("join request")
-
-
+                let data = join_pull_socket.recv_bytes();
+                let server = Server::parse_from_bytes(&data.unwrap()).unwrap();
+                self.node_handler(&mut global_hash_ring, &server);
             }
 
             if poll_items[2].get_revents() == PollEvents::POLLIN {
@@ -169,7 +169,7 @@ impl ServerThread {
             if s.private_ip == self.private_ip {
                 continue;
             }
-            let socket = socket_cache.get_or_connect(self.get_seed_connect_addr(s.private_ip.clone()), zmq::PUSH);
+            let socket = socket_cache.get_or_connect(self.get_node_connect_addr(s.private_ip.clone()), zmq::PUSH);
             socket.send_bytes(server.write_to_bytes().unwrap());
         }
     }
@@ -188,5 +188,18 @@ impl ServerThread {
         return response;
     }
 
-    pub fn node_handler(&self, )
+    pub fn node_handler(&self, global_hash_ring: &mut HashRing, server: &Server){
+        // only thread 0 communicates with other nodes
+        if self.thread_id != 0 {
+            return
+        }
+
+        // update the global hash ring
+        global_hash_ring.insert(ServerThread{
+            public_ip: server.public_ip.clone(),
+            private_ip: server.private_ip.clone(),
+            thread_id: self.thread_id,
+            virtual_num: 0,
+        }, 0);
+    }
 }

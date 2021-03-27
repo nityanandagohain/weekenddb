@@ -1,4 +1,4 @@
-use zmq::{Socket, PollEvents, Result, Context, SocketType, PollItem};
+use zmq::{Socket, PollEvents, Message, Result, Context, SocketType, PollItem};
 use std::error::Error;
 use std::collections::HashMap;
 use std::collections::hash_map::Entry;
@@ -42,6 +42,10 @@ impl ZMQWrapper {
                 None
             }
         }
+    }
+
+    pub fn recv(&self, msg: &mut Message) -> Result<()>{
+        return self.socket.recv(msg, 0)
     }
 
     pub fn recv_string(&self) -> String {
